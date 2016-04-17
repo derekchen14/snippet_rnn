@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import time as tm
 import re
-#  np.random.seed(14)  # for reproducibility
+#  np.random.seed(14)
 
 from keras.utils import np_utils
 from keras.models import Sequential
@@ -25,9 +25,9 @@ def vectorize(X, y, word_idx, max_snippet_len):
   X_vectors = map(lambda (snippet): [word_idx[w] for w in snippet], X)
   padded_X = pad_sequences(X_vectors, maxlen=max_snippet_len)
 
-  label_index = dict((label, i+1) for i, label in enumerate(list(set(y))))
+  label_index = dict((label, i) for i, label in enumerate(list(set(y))))
   y_vectors = [label_index[w] for w in y]
-  one_hot_y = np_utils.to_categorical(y_vectors)  # might revisit if index 0 is reserved
+  one_hot_y = np_utils.to_categorical(y_vectors)
 
   return (padded_X, one_hot_y)
 
@@ -47,13 +47,13 @@ vocab_size = len(vocab) + 1
 max_snippet_len = max(map(len, X_raw))
 print "------------- Prepared in %0.2fs ---------------" % (tm.time() - checkpoint)
 
-# Reserve 0 for masking via pad_sequences
 print('Vocabulary size: %d unique words') % vocab_size
 print('Max snippet length: %d words') % max_snippet_len
 print('Number of training inputs: %d') % len(X_raw)
 print('Number of training labels: %d') % len(y_raw)
 
 print('Vectorizing the word sequences...')
+# the i++ is to reserve 0 for masking via pad_sequences
 word_idx = dict((word, i + 1) for i, word in enumerate(vocab))
 X_train, y_train = vectorize(X_raw, y_raw, word_idx, max_snippet_len)
 
@@ -64,6 +64,11 @@ X_train, y_train = vectorize(X_raw, y_raw, word_idx, max_snippet_len)
 # print X_train[num]
 # print y_train[num]
 
+print len(y_train)
+print y_train[4:6]
+print len(y_train[6])
+print type(y_train[6])
+
 print('Building and compiling model...')
 checkpoint = tm.time()
 model = Sequential()
@@ -71,15 +76,10 @@ model.add(Embedding(vocab_size, 128, input_length=max_snippet_len, dropout=0.2))
 model.add(LSTM(128, dropout_W=0.2, dropout_U=0.2))
 model.add(Dense(21))
 model.add(Activation('softmax'))
-model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+model.compile(loss='categorical_crossentropy',
+        optimizer='rmsprop', metrics=['accuracy'])
 print "------------- Model compiled in %0.2fs ---------------" % (tm.time() - checkpoint)
 
-# print('Train...')
-# print(X_train.shape)
-# print(y_train.shape)
-# model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=15,
-#           validation_data=(X_test, y_test))
-# score, acc = model.evaluate(X_test, y_test,
-#                             batch_size=batch_size)
-# print('Test score:', score)
-# print('Test accuracy:', acc)
+print('Training phase ...')
+model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=epochs,
+        validation_split=0.2 , verbose=2)
