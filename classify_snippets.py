@@ -8,18 +8,18 @@ import time as tm
 import re
 #  np.random.seed(14)  # for reproducibility
 
-# from keras.preprocessing import sequence
 from keras.utils import np_utils
-# from keras.models import Sequential
-# from keras.layers.core import Dense, Dropout, Activation
-# from keras.layers.embeddings import Embedding
-# from keras.layers.recurrent import LSTM, SimpleRNN, GRU
+from keras.models import Sequential
+from keras.layers.core import Dense, Dropout, Activation
+from keras.layers.embeddings import Embedding
+from keras.layers.recurrent import LSTM, SimpleRNN, GRU
 from keras.preprocessing.sequence import pad_sequences
 
 env = 'local'
-max_features = 20000
-maxlen = 500  # cut texts after this number of words (among top max_features most common words)
+# max_features = 19295 as determined by data, was originally 20000
+# max_len = 105 as determined by data, was originally 80
 batch_size = 32
+epochs = 20
 
 def vectorize(X, y, word_idx, max_snippet_len):
   X_vectors = map(lambda (snippet): [word_idx[w] for w in snippet], X)
@@ -57,46 +57,22 @@ print('Vectorizing the word sequences...')
 word_idx = dict((word, i + 1) for i, word in enumerate(vocab))
 X_train, y_train = vectorize(X_raw, y_raw, word_idx, max_snippet_len)
 
-num = np.random.randint(0,5000)
-print('Here\'s a random snippet with its label and vectors (%d):') % num
-print(X_raw[num])
-print(y_raw[num])
-print X_train[num]
-print y_train[num]
+# num = np.random.randint(0,5000)
+# print('Here\'s a random snippet with its label and vectors (%d):') % num
+# print X_raw[num]
+# print y_raw[num]
+# print X_train[num]
+# print y_train[num]
 
-# print('-')
-# print('inputs: integer tensor of shape (samples, max_length)')
-# print('inputs_train shape:', inputs_train.shape)
-# print('inputs_test shape:', inputs_test.shape)
-# print('-')
-# print('queries: integer tensor of shape (samples, max_length)')
-# print('queries_train shape:', queries_train.shape)
-# print('queries_test shape:', queries_test.shape)
-# print('-')
-# print('answers: binary (1 or 0) tensor of shape (samples, vocab_size)')
-# print('answers_train shape:', answers_train.shape)
-# print('answers_test shape:', answers_test.shape)
-# print('-')
-# print('Compiling...')
-
-
-# print('Pad sequences (samples x time)')
-# X_train = sequence.pad_sequences(X_train, maxlen=maxlen)
-# X_test = sequence.pad_sequences(X_test, maxlen=maxlen)
-# print('X_train shape:', X_train.shape)
-# print('X_test shape:', X_test.shape)
-
-# print('Build model...')
-# model = Sequential()
-# model.add(Embedding(max_features, 128, input_length=maxlen, dropout=0.2))
-# model.add(LSTM(128, dropout_W=0.2, dropout_U=0.2))  # try using a GRU instead, for fun
-# model.add(Dense(1))
-# model.add(Activation('sigmoid'))
-
-# # try using different optimizers and different optimizer configs
-# model.compile(loss='binary_crossentropy',
-#               optimizer='adam',
-#               metrics=['accuracy'])
+print('Building and compiling model...')
+checkpoint = tm.time()
+model = Sequential()
+model.add(Embedding(vocab_size, 128, input_length=max_snippet_len, dropout=0.2))
+model.add(LSTM(128, dropout_W=0.2, dropout_U=0.2))
+model.add(Dense(21))
+model.add(Activation('softmax'))
+model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+print "------------- Model compiled in %0.2fs ---------------" % (tm.time() - checkpoint)
 
 # print('Train...')
 # print(X_train.shape)
