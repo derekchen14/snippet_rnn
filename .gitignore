@@ -63,3 +63,4 @@ target/
 *.pem
 *.h5
 *.DS_Store
+/data
