@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import time as tm
 import re
-np.random.seed(14)  # for reproducibility
+#  np.random.seed(14)  # for reproducibility
 
 # from keras.preprocessing import sequence
 from keras.utils import np_utils
@@ -21,26 +21,19 @@ max_features = 20000
 maxlen = 500  # cut texts after this number of words (among top max_features most common words)
 batch_size = 32
 
-def encode_one_hot(y):
-  Y = np.zeros((len(y), np.max(y)+1))
-  for i in range(len(y)):
-      Y[i, y[i]] = 1.
-  return Y
-
 def vectorize(X, y, word_idx, max_snippet_len):
   X_vectors = map(lambda (snippet): [word_idx[w] for w in snippet], X)
   padded_X = pad_sequences(X_vectors, maxlen=max_snippet_len)
 
-  unique_labels = reduce(lambda x, y: x | y, (set(label) for label in y))
-  label_index = dict((word, i + 1) for i, word in enumerate(unique_labels))
-  y_vectors = map(lambda (label): [label_index[w] for w in label], y)
+  label_index = dict((label, i+1) for i, label in enumerate(list(set(y))))
+  y_vectors = [label_index[w] for w in y]
   one_hot_y = np_utils.to_categorical(y_vectors)  # might revisit if index 0 is reserved
 
   return (padded_X, one_hot_y)
 
 print('Loading data...')
 initial_time = tm.time()
-data = pd.read_pickle('training_data.p')
+data = pd.read_pickle('data/training_data.p')
 if env == 'local':
   data = data[0:5000]
 X_raw = data['Content'].tolist()
@@ -59,18 +52,17 @@ print('Vocabulary size: %d unique words') % vocab_size
 print('Max snippet length: %d words') % max_snippet_len
 print('Number of training inputs: %d') % len(X_raw)
 print('Number of training labels: %d') % len(y_raw)
-num = np.random.randint(0,5000)
-print('Here\'s a random snippet and its label (%d):') % num
-print(X_raw[num])
-print(y_raw[num])
 
 print('Vectorizing the word sequences...')
 word_idx = dict((word, i + 1) for i, word in enumerate(vocab))
 X_train, y_train = vectorize(X_raw, y_raw, word_idx, max_snippet_len)
 
-print y_train[23:47]
-print X_train[634:650]
-print y_train[634:650]
+num = np.random.randint(0,5000)
+print('Here\'s a random snippet with its label and vectors (%d):') % num
+print(X_raw[num])
+print(y_raw[num])
+print X_train[num]
+print y_train[num]
 
 # print('-')
 # print('inputs: integer tensor of shape (samples, max_length)')
