@@ -14,13 +14,15 @@ Reaches 98.6% accuracy on task 'single_supporting_fact_10k' after 120 epochs.
 Time per epoch: 3s on CPU (core i7).
 '''
 
-from __future__ import print_function
+# from __future__ import print_function
 from keras.models import Sequential
 from keras.layers.embeddings import Embedding
 from keras.layers.core import Activation, Dense, Merge, Permute, Dropout
 from keras.layers.recurrent import LSTM
 from keras.utils.data_utils import get_file
+from keras.callbacks import Callback
 from keras.preprocessing.sequence import pad_sequences
+from collections import Counter
 from functools import reduce
 import tarfile
 import numpy as np
@@ -168,20 +170,19 @@ print('answers_train shape:', answers_train.shape)
 print('answers_test shape:', answers_test.shape)
 print('-')
 print('Compiling...')
-'''
 # embed the input sequence into a sequence of vectors
 # x * A = memory = m
 # output: (samples, story_maxlen, embedding_dim)
 input_encoder_m = Sequential()
 input_encoder_m.add(Embedding(input_dim=vocab_size, output_dim=64, input_length=story_maxlen))
-input_encoder_m.add(Dropout(0.3))
+# input_encoder_m.add(Dropout(0.3))
 
 # embed the question into a sequence of vectors
 # q * B = u
 # output: (samples, query_maxlen, embedding_dim)
 question_encoder = Sequential()
 question_encoder.add(Embedding(input_dim=vocab_size, output_dim=64, input_length=query_maxlen))
-question_encoder.add(Dropout(0.3))
+# question_encoder.add(Dropout(0.3))
 
 # compute a 'match' between input sequence elements (which are vectors)
 # and the question vector sequence
@@ -196,7 +197,7 @@ match.add(Merge([input_encoder_m, question_encoder], mode='dot', dot_axes=[2, 2]
 # output: (samples, story_maxlen, query_maxlen)
 input_encoder_c = Sequential()
 input_encoder_c.add(Embedding(input_dim=vocab_size, output_dim=query_maxlen, input_length=story_maxlen))
-input_encoder_c.add(Dropout(0.3))
+# input_encoder_c.add(Dropout(0.3))
 
 # sum the match vector with the input vector:
 # o = sum(p * c)
@@ -215,12 +216,49 @@ answer.add(Merge([response, question_encoder], mode='concat', concat_axis=-1))
 # W (o + u)
 answer.add(LSTM(32)) # output dimension is 32 filters
 # one regularization layer -- more would probably be needed.
-answer.add(Dropout(0.3))
+# answer.add(Dropout(0.3))
 answer.add(Dense(vocab_size))
 
 # we output a probability distribution over the vocabulary
 # â = Softmax( W (o + u))
 answer.add(Activation('softmax'))
+
+class WhateverIWant(Callback):
+  def on_train_begin(self, logs={}):
+    self.losses = []
+    print "the beginning"
+    self.counting = Counter(batches=0)
+
+  def on_batch_end(self, batch, logs={}):
+    # self.losses.append(logs.get('loss'))
+    self.counting['batches'] += 1
+    # print logs.keys()
+
+  def on_epoch_end(self, epoch, logs={}):
+    print "batches:"
+    print self.counting.get('batches')
+
+
+class FancyAsFuck(Callback):
+  def on_train_begin(self, logs={}):
+    self.e_counting = Counter(es=0)
+    # print self.model.get_config()
+
+  def on_epoch_begin(self, epoch, logs={}):
+    print "my other callback for epochs"
+    self.e_counting['es'] += 1
+    wer = self.model.get_weights()
+    print wer[5]
+
+  def on_epoch_end(self, epoch, logs={}):
+    print "epoch:", epoch
+    print "my epoch counter:"
+    print self.e_counting.get('es')
+    # print self.model.summary()
+
+
+my_callback = WhateverIWant()
+other_call = FancyAsFuck()
 
 answer.compile(optimizer='rmsprop', loss='categorical_crossentropy',
                metrics=['accuracy'])
@@ -228,6 +266,7 @@ answer.compile(optimizer='rmsprop', loss='categorical_crossentropy',
 # Note: you could use a Graph model to avoid repeat the input twice
 answer.fit([inputs_train, queries_train, inputs_train], answers_train,
            batch_size=32,
+           callbacks=[my_callback, other_call],
            nb_epoch=120,
            validation_data=([inputs_test, queries_test, inputs_test], answers_test))
-'''
+
