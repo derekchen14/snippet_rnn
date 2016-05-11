@@ -22,11 +22,11 @@ batch_size = 100 if env == 'local' else 32
 epochs = 7 if env == 'local' else 15
 
 cell_type = ['LSTM', 'GRU'] # https://arxiv.org/abs/1412.3555
-recurrent_dropout = [True, False] # http://arxiv.org/abs/1409.2329
 input_gate_dropout = [0.1, 0.3, 0.5] # http://arxiv.org/abs/1512.05287
-optimizers = ['adam', 'rmsprop'] # http://arxiv.org/abs/1412.6980
 cells_per_layer = [64, 128, 256] # https://github.com/karpathy/char-rnn
 multilayer_rnn = [True, False]
+recurrent_dropout = [0.0, 0.2] # http://arxiv.org/abs/1409.2329
+optimizers = ['adam', 'rmsprop'] # http://arxiv.org/abs/1412.6980
 
 def vectorize(X, y, word_idx, max_snippet_len):
   X_vectors = map(lambda (snippet): [word_idx[w] for w in snippet], X)
@@ -40,18 +40,18 @@ def vectorize(X, y, word_idx, max_snippet_len):
 
 def build_combinations():
   combos = []
-  # for flag in recurrent_dropout:
-  # for optimizer in optimizers:
-  for cell in cell_type:
-    for step in input_gate_dropout:
-      for count in cells_per_layer:
-        for layer in multilayer_rnn:
-          combos.append([cell, step, count, layer])
-  return random.sample(combos, 50)
+  # for cell in cell_type:
+  for step in input_gate_dropout:
+    for count in cells_per_layer:
+      # for layer in multilayer_rnn:
+      for flag in recurrent_dropout:
+        for optimizer in optimizers:
+          combos.append(['GRU', step, count, False, flag, optimizer])
+  return combos
 
 print('Loading data...')
 initial_time = tm.time()
-data = pd.read_pickle('data/training_data.p')
+data = pd.read_pickle('data/local_data.p')
 if env == 'local':
   data = data[0:5000]
   cells_per_layer = [64, 80, 96]
@@ -78,24 +78,27 @@ for combo in combinations:
   checkpoint = tm.time()
   model = Sequential()
   model.add(Embedding(vocab_size, 128, input_length=max_snippet_len, dropout=0.2))
+  # model.add(Embedding(vocab_size, combo[5], input_length=max_snippet_len, dropout=0.2))
 
-  if combo[0] == 'LSTM':
-    if combo[3]:
-      model.add(LSTM(combo[2], return_sequences=True, dropout_W=combo[1]))
-    model.add(LSTM(combo[2], dropout_W=drop_w))
-  elif combo[0] == 'GRU':
-    if combo[3]:
-      model.add(GRU(combo[2], return_sequences=True, dropout_W=combo[1]))
-    model.add(GRU(combo[2], dropout_W=drop_w))
+  # if combo[0] == 'LSTM':
+    # if combo[3]:
+    #   model.add(LSTM(combo[2], return_sequences=True, dropout_W=combo[1], dropout_U=combo[4]))
+    # model.add(LSTM(combo[2], dropout_W=combo[1], dropout_U=combo[4]))
+  # elif combo[0] == 'GRU':
+    # if combo[3]:
+    #   model.add(GRU(combo[2], return_sequences=True, dropout_W=combo[1], dropout_U=combo[4]))
+    # model.add(GRU(combo[2], dropout_W=combo[1], dropout_U=combo[4], go_backwards=True))
+  model.add(GRU(combo[2], dropout_W=combo[1], dropout_U=combo[4]))
 
   model.add(Dense(21))
   model.add(Activation('softmax'))
   model.compile(loss='categorical_crossentropy',
-      optimizer='adam', metrics=['accuracy'])
+      optimizer=combo[5], metrics=['accuracy'])
   print "------------- Model compiled in %0.2fs ---------------" % (tm.time() - checkpoint)
-  print("Cell type: %s" % combo[0], "Drop Input: %s" % combo[1], "Cell Count: %s" % combo[2], "Layers: %s" % combo[3])
+  print("Cell type: %s" % combo[0], "Drop Input: %s" % combo[1], "Cell Count: %s" % combo[2])
+  print("Multi-layer: %s" % combo[3], "Drop Recurrent: %s" % combo[4], "Optimizer: %s" % combo[5])
 
-  print('Training phase ...')
+  # print('Training phase ...')
   model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=epochs,
           validation_split=0.2, verbose=2)
   model = None
