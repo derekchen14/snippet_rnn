@@ -16,7 +16,7 @@ from keras.callbacks import Callback, EarlyStopping
 from keras.layers.recurrent import LSTM, SimpleRNN, GRU
 from keras.preprocessing.sequence import pad_sequences
 
-env = 'local'
+env = 'remote'
 np.random.seed(14)
 batch_size = 100 if env == 'local' else 32
 epochs = 3 if env == 'local' else 15
@@ -42,14 +42,18 @@ def vectorize(X, y, word_idx, max_snippet_len):
 
 def build_combinations():
   combos = []
-  # combos.append([0.6, 768])
-  # combos.append([0.7, 512])
-  # combos.append([0.7, 768])
-  for step in input_gate_dropout:
-    for count in cells_per_layer:
-      for size in embedding_size:
-        for flag in reverse_input:
-          combos.append([step, count, size, flag])
+  combos.append([0.5, 256])
+  combos.append([0.5, 512])
+  combos.append([0.6, 256])
+  combos.append([0.6, 512])
+  combos.append([0.6, 768])
+  combos.append([0.7, 512])
+  combos.append([0.7, 768])
+  # for step in input_gate_dropout:
+  #   for count in cells_per_layer:
+  #     for size in embedding_size:
+  #       for flag in reverse_input:
+  #         combos.append([step, count, size, flag])
   print len(combos)
   return combos
 
@@ -85,16 +89,16 @@ for combo in combinations:
   print("Building and compiling model ...")
   checkpoint = tm.time()
   model = Sequential()
-  model.add(Embedding(vocab_size, combo[2], input_length=max_snippet_len, dropout=0.2))
+  model.add(Embedding(vocab_size, 128, input_length=max_snippet_len, dropout=0.2))
 
-  model.add(GRU(combo[1], dropout_W=combo[0], dropout_U=0.2, go_backwards=combo[3]))
+  model.add(GRU(combo[1], dropout_W=combo[0], dropout_U=0.2))
 
   model.add(Dense(21))
   model.add(Activation('softmax'))
   model.compile(loss='categorical_crossentropy',
         optimizer='rmsprop', metrics=['accuracy'])
   print "------------- Model compiled in %0.2fs ---------------" % (tm.time() - checkpoint)
-  print("Dropout: %s" % combo[0], "Size: %s" % combo[1], "Embed: %s" % combo[2], "Reverse: %s" % combo[3])
+  print("Dropout: %s" % combo[0], "Size: %s" % combo[1])
   print('Training phase ...')
   model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=epochs,
         validation_split=0.2, verbose=2)
