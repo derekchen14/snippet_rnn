@@ -18,6 +18,7 @@ def combinations(grid_search, param_options):
   except ValueError:
     print "Warning: Random search limits to top 50 combinations, but there are \
       only %d, so all combinations were returned." % len(combos)
+  print "%d combinations being tested." % len(combos)
   return combos
 
 def loadData(num_buckets):
@@ -33,7 +34,7 @@ def loadData(num_buckets):
   print "------------- Loaded %d buckets in %0.2fs ---------------" % (len(buckets), (tm.time() - initial_time))
   return buckets
 
-def prepareData(data, params):
+def prepareData(data, params={}):
   print('Finding unique values ...')
   checkpoint = tm.time()
   X_raw = data['Content'].tolist()
