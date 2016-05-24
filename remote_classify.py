@@ -21,7 +21,7 @@ np.random.seed(14)
 batch_size = 100 if env == 'local' else 32
 epochs = 3 if env == 'local' else 15
 
-cell_type = ['LSTM', 'GRU'] # https://arxiv.org/abs/1412.3555
+
 input_gate_dropout = [0.5, 0.6] # http://arxiv.org/abs/1512.05287
 cells_per_layer = [128, 256] # https://github.com/karpathy/char-rnn
 multilayer_rnn = [True, False]
