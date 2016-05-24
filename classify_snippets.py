@@ -16,7 +16,7 @@ from keras.callbacks import TensorBoard
 env = 'local'
 np.random.seed(14)
 batch_size = 100 if env == 'local' else 32
-epochs = 3 if env == 'local' else 15
+epochs = 5 if env == 'local' else 15
 num_buckets = 8
 grid_search = True  # False means 50 combos are randomly sampled
 
@@ -50,9 +50,9 @@ def compile_network(model, p):
 
 def train_network(X_train, y_train, model):
   history = results.SingleHistory()
-  # tensorboard = TensorBoard(log_dir='logs/', write_graph=True)
+  tensorboard = TensorBoard(log_dir='./logs', histogram_freq=1, write_graph=True)
   model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=epochs,
-        validation_split=0.2, verbose=1, callbacks=[history])
+        validation_split=0.2, verbose=1, callbacks=[history, tensorboard])
   model = None
   return history
 

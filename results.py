@@ -1,4 +1,4 @@
-from keras.callbacks import Callback, TensorBoard
+from keras.callbacks import Callback
 import pandas as pd
 import datetime
 
